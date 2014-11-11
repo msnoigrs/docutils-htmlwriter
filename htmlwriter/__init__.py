@@ -1,4 +1,5 @@
-# $Id: __init__.py 7753 2014-06-24 14:52:59Z milde $
+# -*- coding: utf-8 -*-
+
 # Author: David Goodger
 # Maintainer: docutils-develop@lists.sourceforge.net
 # Copyright: This module has been placed in the public domain.
