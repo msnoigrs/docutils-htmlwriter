@@ -15,6 +15,10 @@ for proper viewing with a modern graphical browser.
 
 __docformat__ = 'reStructuredText'
 
+try:
+    unicode
+except NameError:
+    unicode = str
 
 import sys
 import os
@@ -447,12 +451,10 @@ class HTMLTranslator(nodes.NodeVisitor):
             # value, but this isn't supported by XHTML.
             assert value is not None
             if isinstance(value, list):
-                values = [unicode(v) for v in value]
-                parts.append('%s="%s"' % (name.lower(),
-                                          self.attval(' '.join(values))))
+                vals = self.attval(' '.join(value))
             else:
-                parts.append('%s="%s"' % (name.lower(),
-                                          self.attval(unicode(value))))
+                vals = value
+            parts.append('%s="%s"' % (name.lower(), vals))
         if empty:
             infix = ' /'
         else:
