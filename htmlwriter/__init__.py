@@ -22,6 +22,7 @@ import os.path
 import time
 import re
 import urllib
+import codecs
 try: # check for the Python Imaging Library
     import PIL.Image
 except ImportError:
@@ -180,9 +181,8 @@ class Writer(writers.Writer):
         self.output = self.apply_template()
 
     def apply_template(self):
-        template_file = open(self.document.settings.template, 'rb')
-        template = unicode(template_file.read(), 'utf-8')
-        template_file.close()
+        with codecs.open(self.document.settings.template, 'r', 'utf-8') as f:
+            template = f.read()
         subs = self.interpolation_dict()
         return template % subs
 
