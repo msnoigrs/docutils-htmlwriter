@@ -443,10 +443,8 @@ class HTMLTranslator(nodes.NodeVisitor):
                     # Non-empty tag.  Place the auxiliary <span> tag
                     # *inside* the element, as the first child.
                     suffix += '<span id="%s"></span>' % id
-        attlist = atts.items()
-        attlist.sort()
         parts = [tagname]
-        for name, value in attlist:
+        for name, value in sorted(atts.items()):
             # value=None was used for boolean attributes without
             # value, but this isn't supported by XHTML.
             assert value is not None
