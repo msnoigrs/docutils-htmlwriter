@@ -1245,12 +1245,10 @@ class HTMLTranslator(nodes.NodeVisitor):
                                            suffix='\n'*bool(math_env),
                                            CLASS=clsarg))
         self.body.append(math_code)
-        if math_env: # block mode (equation, display)
+        if math_env:
             self.body.append('\n')
         if tag:
             self.body.append('</%s>' % tag)
-        if math_env:
-            self.body.append('\n')
         # Content already processed:
         raise nodes.SkipNode
 
