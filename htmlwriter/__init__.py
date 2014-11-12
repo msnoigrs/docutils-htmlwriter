@@ -354,7 +354,7 @@ class HTMLTranslator(nodes.NodeVisitor):
         return uri.replace('@', '%40')
 
     def cloak_email(self, addr):
-        """Try to hide the link text of a email link from harversters."""
+        """Try to hide the link text of a email link from harvesters."""
         # Surround at-signs and periods with <span> tags.  ("@" has
         # already been encoded to "&#64;" by the `encode` method.)
         addr = addr.replace('&#64;', '<span>&#64;</span>')
