@@ -283,7 +283,7 @@ class HTMLTranslator(nodes.NodeVisitor):
     lang_attribute = 'lang' # name changes to 'xml:lang' in XHTML 1.1
 
     def __init__(self, document):
-        nodes.NodeVisitor.__init__(self, document)
+        super(HTMLTranslator, self).__init__(document)
         self.settings = settings = document.settings
         lcode = settings.language_code
         self.language = languages.get_language(lcode, document.reporter)
