@@ -521,7 +521,7 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_author(self, node):
         if isinstance(node.parent, nodes.authors):
             if self.author_in_authors:
-                self.body.append('\n<br />')
+                self.body.append('\n<br>')
         else:
             self.visit_docinfo_item(node, 'author')
 
@@ -585,7 +585,7 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_citation(self, node):
         self.body.append(self.starttag(node, 'table',
                                        CLASS='docutils citation'))
-        self.body.append('<colgroup><col class="label" /><col /></colgroup>\n'
+        self.body.append('<colgroup><col class="label"><col></colgroup>\n'
                          '<tbody style="vertical-align:top">\n'
                          '<tr>')
         self.footnote_backrefs(node)
@@ -712,8 +712,8 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.context.append(len(self.body))
         self.body.append(self.starttag(node, 'table',
                                        CLASS='docinfo'))
-        self.body.append('<col class="docinfo-name" />\n'
-                         '<col class="docinfo-content" />\n'
+        self.body.append('<col class="docinfo-name">\n'
+                         '<col class="docinfo-content">\n'
                          '<tbody style="vertical-align:top">\n')
         self.in_docinfo = True
 
@@ -726,7 +726,7 @@ class HTMLTranslator(nodes.NodeVisitor):
 
     def visit_docinfo_item(self, node, name, meta=True):
         if meta:
-            meta_tag = '<meta name="%s" content="%s" />\n' \
+            meta_tag = '<meta name="%s" content="%s">\n' \
                        % (name, self.attval(node.astext()))
             self.add_meta(meta_tag)
         self.body.append(self.starttag(node, 'tr', ''))
@@ -870,8 +870,8 @@ class HTMLTranslator(nodes.NodeVisitor):
                     break
         self.body.append(self.starttag(node, 'table',
                                        CLASS='docutils field-list'))
-        self.body.append('<col class="field-name" />\n'
-                         '<col class="field-body" />\n'
+        self.body.append('<col class="field-name">\n'
+                         '<col class="field-body">\n'
                          '<tbody style="vertical-align:top">\n')
 
     def depart_field_list(self, node):
@@ -916,7 +916,7 @@ class HTMLTranslator(nodes.NodeVisitor):
     def depart_footer(self, node):
         start = self.context.pop()
         footer = [self.starttag(node, 'div', CLASS='footer'),
-                  '<hr class="footer" />\n']
+                  '<hr class="footer">\n']
         footer.extend(self.body[start:])
         footer.append('\n</div>\n')
         self.footer.extend(footer)
@@ -926,7 +926,7 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_footnote(self, node):
         self.body.append(self.starttag(node, 'table',
                                        CLASS='docutils footnote'))
-        self.body.append('<colgroup><col class="label" /><col /></colgroup>\n'
+        self.body.append('<colgroup><col class="label"><col></colgroup>\n'
                          '<tbody style="vertical-align:top">\n'
                          '<tr>')
         self.footnote_backrefs(node)
@@ -1093,7 +1093,7 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_line(self, node):
         self.body.append(self.starttag(node, 'div', suffix='', CLASS='line'))
         if not len(node):
-            self.body.append('<br />')
+            self.body.append('<br>')
 
     def depart_line(self, node):
         self.body.append('</div>\n')
@@ -1292,8 +1292,8 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_option_list(self, node):
         self.body.append(
               self.starttag(node, 'table', CLASS='docutils option-list'))
-        self.body.append('<col class="option" />\n'
-                         '<col class="description" />\n'
+        self.body.append('<col class="option">\n'
+                         '<col class="description">\n'
                          '<tbody style="vertical-align:top">\n')
 
     def depart_option_list(self, node):
