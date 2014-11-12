@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Author: David Goodger
-# Maintainer: docutils-develop@lists.sourceforge.net
+# Maintainer: IGARASHI Masanao <syoux2@gmail.com>
 # Copyright: This module has been placed in the public domain.
 
 """
@@ -48,10 +48,10 @@ from docutils.utils.math.latex2mathml import parse_latex_math
 
 class Writer(writers.Writer):
 
-    supported = ('html', 'html4css1', 'xhtml')
+    supported = ('html',)
     """Formats this writer supports."""
 
-    default_stylesheet = 'html4css1.css'
+    default_stylesheet = 'htmlwriter.css'
     default_stylesheet_dirs = ['.', utils.relative_path(
         os.path.join(os.getcwd(), 'dummy'), os.path.dirname(__file__))]
 
@@ -163,7 +163,7 @@ class Writer(writers.Writer):
 
     settings_defaults = {'output_encoding_error_handler': 'xmlcharrefreplace'}
 
-    config_section = 'html4css1 writer'
+    config_section = 'html writer'
     config_section_dependencies = ('writers',)
 
     visitor_attributes = (
