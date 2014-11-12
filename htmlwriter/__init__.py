@@ -7,9 +7,8 @@
 """
 Simple HyperText Markup Language document tree Writer.
 
-The output conforms to the XHTML version 1.0 Transitional DTD
-(*almost* strict).  The output contains a minimum of formatting
-information.  The cascading style sheet "html4css1.css" is required
+The output conforms to the HTML.  The output contains a minimum of formatting
+information.  The cascading style sheet "htmlwriter.css" is required
 for proper viewing with a modern graphical browser.
 """
 
@@ -251,21 +250,16 @@ class HTMLTranslator(nodes.NodeVisitor):
     option) disables list whitespace optimization.
     """
 
-    xml_declaration = '<?xml version="1.0" encoding="%s" ?>\n'
-    doctype = (
-        '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"'
-        ' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n')
+    xml_declaration = ''
+    doctype = '<!DOCTYPE html>\n'
     doctype_mathml = doctype
 
-    head_prefix_template = ('<html xmlns="http://www.w3.org/1999/xhtml"'
-                            ' xml:lang="%(lang)s" lang="%(lang)s">\n<head>\n')
-    content_type = ('<meta http-equiv="Content-Type"'
-                    ' content="text/html; charset=%s" />\n')
-    content_type_mathml = ('<meta http-equiv="Content-Type"'
-                           ' content="application/xhtml+xml; charset=%s" />\n')
+    head_prefix_template = '<html lang="%(lang)s">\n'
+    content_type = '<meta charset="%s">\n'
+    content_type_mathml = content_type
 
     generator = ('<meta name="generator" content="Docutils %s: '
-                 'http://docutils.sourceforge.net/" />\n')
+                 'http://docutils.sourceforge.net/">\n')
 
     # Template for the MathJax script in the header:
     mathjax_script = '<script type="text/javascript" src="%s"></script>\n'
@@ -276,11 +270,13 @@ class HTMLTranslator(nodes.NodeVisitor):
                    'config=TeX-AMS-MML_HTMLorMML')
     # may be overwritten by custom URL appended to "mathjax"
 
-    stylesheet_link = '<link rel="stylesheet" href="%s" type="text/css" />\n'
-    embedded_stylesheet = '<style type="text/css">\n\n%s\n</style>\n'
+    stylesheet_link = '<link rel="stylesheet" href="%s">\n'
+    embedded_stylesheet = '<style>\n\n%s\n</style>\n'
     words_and_spaces = re.compile(r'\S+| +|\n')
-    sollbruchstelle = re.compile(r'.+\W\W.+|[-?].+', re.U) # wrap point inside word
-    lang_attribute = 'lang' # name changes to 'xml:lang' in XHTML 1.1
+    # wrap point inside word
+    sollbruchstelle = re.compile(r'.+\W\W.+|[-?].+', re.U)
+    # name changes to the 'lang' attribute of the html tag
+    lang_attribute = 'lang'
 
     def __init__(self, document):
         super(HTMLTranslator, self).__init__(document)
@@ -290,11 +286,6 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.meta = [self.generator % docutils.__version__]
         self.head_prefix = []
         self.html_prolog = []
-        if settings.xml_declaration:
-            self.head_prefix.append(self.xml_declaration
-                                    % settings.output_encoding)
-            # encoding not interpolated:
-            self.html_prolog.append(self.xml_declaration)
         self.head = self.meta[:]
         self.stylesheet = [self.stylesheet_call(path)
                            for path in utils.get_stylesheet_list(settings)]
@@ -419,7 +410,6 @@ class HTMLTranslator(nodes.NodeVisitor):
             elif cls.strip() and cls not in classes:
                 classes.append(cls)
         if languages:
-            # attribute name is 'lang' in XHTML 1.0 but 'xml:lang' in 1.1
             atts[self.lang_attribute] = languages[0]
         if classes:
             atts['class'] = ' '.join(classes)
@@ -445,19 +435,15 @@ class HTMLTranslator(nodes.NodeVisitor):
                     suffix += '<span id="%s"></span>' % id
         parts = [tagname]
         for name, value in sorted(atts.items()):
-            # value=None was used for boolean attributes without
-            # value, but this isn't supported by XHTML.
-            assert value is not None
-            if isinstance(value, list):
-                vals = self.attval(' '.join(value))
+            if value is None:
+                parts.append(name.lower())
             else:
-                vals = value
-            parts.append('%s="%s"' % (name.lower(), vals))
-        if empty:
-            infix = ' /'
-        else:
-            infix = ''
-        return ''.join(prefix) + '<%s%s>' % (' '.join(parts), infix) + suffix
+                if isinstance(value, list):
+                    vals = self.attval(' '.join(value))
+                else:
+                    vals = value
+                parts.append('%s="%s"' % (name.lower(), vals))
+        return ''.join(prefix) + '<%s>' % (' '.join(parts),) + suffix
 
     def emptytag(self, node, tagname, suffix='\n', **attributes):
         """Construct and return an XML-compatible empty tag."""
@@ -824,11 +810,6 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.body.append(self.context.pop())
 
     def visit_enumerated_list(self, node):
-        """
-        The 'start' attribute does not conform to HTML 4.01's strict.dtd, but
-        CSS1 doesn't help. CSS2 isn't widely enough supported yet to be
-        usable.
-        """
         atts = {}
         if 'start' in node:
             atts['start'] = node['start']
