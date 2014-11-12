@@ -631,7 +631,7 @@ class HTMLTranslator(nodes.NodeVisitor):
         for node in self.colspecs:
             colwidth = int(node['colwidth'] * 100.0 / width + 0.5)
             self.body.append(self.emptytag(node, 'col',
-                                           width='%i%%' % colwidth))
+                                           style='width:%i%%' % colwidth))
         self.colspecs = []
 
     def visit_comment(self, node,
