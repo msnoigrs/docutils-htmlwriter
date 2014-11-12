@@ -326,6 +326,7 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.in_mailto = False
         self.author_in_authors = False
         self.math_header = []
+        self.protect_literal_text = False
 
     def astext(self):
         return ''.join(self.head_prefix + self.head
@@ -468,9 +469,23 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_Text(self, node):
         text = node.astext()
         encoded = self.encode(text)
-        if self.in_mailto and self.settings.cloak_email_addresses:
-            encoded = self.cloak_email(encoded)
-        self.body.append(encoded)
+        if self.protect_literal_text:
+            # moved here from base class's visit_literal to support
+            # more formatting in literal nodes
+            for token in self.words_and_spaces.findall(encoded):
+                if token.strip():
+                    # protect literal text from line wrapping
+                    self.body.append('<span class="pre">%s</span>' % token)
+                elif token in ' \n':
+                    # allow breaks at whitespace
+                    self.body.append(token)
+                else:
+                    # protect runs of multiple spaces; the last one can wrap
+                    self.body.append('&nbsp;' * (len(token)-1) + ' ')
+        else:
+            if self.in_mailto and self.settings.cloak_email_addresses:
+                encoded = self.cloak_email(encoded)
+            self.body.append(encoded)
 
     def depart_Text(self, node):
         pass
@@ -1113,37 +1128,12 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.body.append('</li>\n')
 
     def visit_literal(self, node):
-        # special case: "code" role
-        classes = node.get('classes', [])
-        if 'code' in classes:
-            # filter 'code' from class arguments
-            node['classes'] = [cls for cls in classes if cls != 'code']
-            self.body.append(self.starttag(node, 'code', ''))
-            return
-        self.body.append(
-            self.starttag(node, 'tt', '', CLASS='docutils literal'))
-        text = node.astext()
-        for token in self.words_and_spaces.findall(text):
-            if token.strip():
-                # Protect text like "--an-option" and the regular expression
-                # ``[+]?(\d+(\.\d*)?|\.\d+)`` from bad line wrapping
-                if self.sollbruchstelle.search(token):
-                    self.body.append('<span class="pre">%s</span>'
-                                     % self.encode(token))
-                else:
-                    self.body.append(self.encode(token))
-            elif token in ('\n', ' '):
-                # Allow breaks at whitespace:
-                self.body.append(token)
-            else:
-                # Protect runs of multiple spaces; the last space can wrap:
-                self.body.append('&nbsp;' * (len(token) - 1) + ' ')
-        self.body.append('</tt>')
-        # Content already processed:
-        raise nodes.SkipNode
+        self.body.append(self.starttag(node, 'code', '',
+                                       CLASS='docutils literal'))
+        self.protect_literal_text = True
 
     def depart_literal(self, node):
-        # skipped unless literal element is from "code" role:
+        self.protect_literal_text = False
         self.body.append('</code>')
 
     def visit_literal_block(self, node):
