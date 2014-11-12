@@ -584,8 +584,7 @@ class HTMLTranslator(nodes.NodeVisitor):
 
     def visit_citation(self, node):
         self.body.append(self.starttag(node, 'table',
-                                       CLASS='docutils citation',
-                                       frame="void", rules="none"))
+                                       CLASS='docutils citation'))
         self.body.append('<colgroup><col class="label" /><col /></colgroup>\n'
                          '<tbody style="vertical-align:top">\n'
                          '<tr>')
@@ -712,8 +711,7 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_docinfo(self, node):
         self.context.append(len(self.body))
         self.body.append(self.starttag(node, 'table',
-                                       CLASS='docinfo',
-                                       frame="void", rules="none"))
+                                       CLASS='docinfo'))
         self.body.append('<col class="docinfo-name" />\n'
                          '<col class="docinfo-content" />\n'
                          '<tbody style="vertical-align:top">\n')
@@ -870,8 +868,7 @@ class HTMLTranslator(nodes.NodeVisitor):
                                    (nodes.paragraph, nodes.line_block))):
                     self.compact_field_list = False
                     break
-        self.body.append(self.starttag(node, 'table', frame='void',
-                                       rules='none',
+        self.body.append(self.starttag(node, 'table',
                                        CLASS='docutils field-list'))
         self.body.append('<col class="field-name" />\n'
                          '<col class="field-body" />\n'
@@ -928,8 +925,7 @@ class HTMLTranslator(nodes.NodeVisitor):
 
     def visit_footnote(self, node):
         self.body.append(self.starttag(node, 'table',
-                                       CLASS='docutils footnote',
-                                       frame="void", rules="none"))
+                                       CLASS='docutils footnote'))
         self.body.append('<colgroup><col class="label" /><col /></colgroup>\n'
                          '<tbody style="vertical-align:top">\n'
                          '<tr>')
@@ -1295,8 +1291,7 @@ class HTMLTranslator(nodes.NodeVisitor):
 
     def visit_option_list(self, node):
         self.body.append(
-              self.starttag(node, 'table', CLASS='docutils option-list',
-                            frame="void", rules="none"))
+              self.starttag(node, 'table', CLASS='docutils option-list'))
         self.body.append('<col class="option" />\n'
                          '<col class="description" />\n'
                          '<tbody style="vertical-align:top">\n')
