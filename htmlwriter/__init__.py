@@ -278,6 +278,13 @@ class HTMLTranslator(nodes.NodeVisitor):
     # name changes to the 'lang' attribute of the html tag
     lang_attribute = 'lang'
 
+    # non-ascii [\n\r\t] non-ascii
+    __RGX = re.compile(r'([^!-~])[\n\r\t]+([^!-~])')
+    # non-ascii [\s]* <End-of-TEXT>
+    __RGX1 = re.compile(r'([^!-~])[\s]*$')
+    # <Beginning-of-TEXT> [\s]* non-ascii
+    __RGX2 = re.compile(r'^[\s]*([^!-~])')
+
     def __init__(self, document):
         super(HTMLTranslator, self).__init__(document)
         self.settings = settings = document.settings
@@ -1337,7 +1344,37 @@ class HTMLTranslator(nodes.NodeVisitor):
             return True
         return False
 
+    def strip_spaces_between_uchars(self, para):
+        # modify text inside Text node
+        for node in para.traverse():
+            if isinstance(node, docutils.nodes.Text):
+                newtext = node.astext()
+                newtext = self.__RGX.sub(r"\1\2", newtext)
+                node.parent.replace(node, docutils.nodes.Text(newtext))
+
+    def strip_spaces_around_uchars_paragraph_children(self, para):
+        # modify texts over 2 nodes
+        # (paragraph node can have childre of Inline (reference, etc) nodes)
+        prev_textnode = docutils.nodes.Text("")
+        for node in para.traverse():
+            new_textnode = None
+            if isinstance(node, docutils.nodes.Text):
+                prevtext = prev_textnode.astext()
+                newtext = node.astext()
+                if self.__RGX1.search(prevtext) and self.__RGX2.search(newtext):
+                    new_prev_textnode = docutils.nodes.Text(
+                        prev_textnode.astext().rstrip())
+                    new_textnode = Text(newtext.lstrip())
+                    prev_textnode.parent.replace(prev_textnode,
+                                                 new_prev_textnode)
+                    node.parent.replace(node, new_textnode)
+                    new_prev_textnode.parent = prev_textnode.parent
+                    new_textnode.parent = node.parent
+                prev_textnode = new_textnode if new_textnode else node
+
     def visit_paragraph(self, node):
+        self.strip_spaces_between_uchars(node)
+        self.strip_spaces_around_uchars_paragraph_children(node)
         if self.should_be_compact_paragraph(node):
             self.context.append('')
         else:
