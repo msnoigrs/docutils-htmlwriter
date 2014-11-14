@@ -509,10 +509,10 @@ class HTMLTranslator(nodes.NodeVisitor):
 
     def visit_acronym(self, node):
         # @@@ implementation incomplete ("title" attribute)
-        self.body.append(self.starttag(node, 'acronym', ''))
+        self.body.append(self.starttag(node, 'abbr', ''))
 
     def depart_acronym(self, node):
-        self.body.append('</acronym>')
+        self.body.append('</abbr>')
 
     def visit_address(self, node):
         self.visit_docinfo_item(node, 'address', meta=False)
