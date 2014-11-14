@@ -12,6 +12,8 @@ information.  The cascading style sheet "htmlwriter.css" is required
 for proper viewing with a modern graphical browser.
 """
 
+from __future__ import division
+
 __docformat__ = 'reStructuredText'
 
 try:
@@ -599,10 +601,10 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.body.append('</ul>\n')
 
     def visit_caption(self, node):
-        self.body.append(self.starttag(node, 'p', '', CLASS='caption'))
+        self.body.append(self.starttag(node, 'figcaption', ''))
 
     def depart_caption(self, node):
-        self.body.append('</p>\n')
+        self.body.append('</figcaption>\n')
 
     def visit_citation(self, node):
         self.body.append(self.starttag(node, 'table',
@@ -922,15 +924,46 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.body.append(self.context.pop())
 
     def visit_figure(self, node):
-        atts = {'class': 'figure'}
-        if node.get('width'):
-            atts['style'] = 'width: %s' % node['width']
-        if node.get('align'):
-            atts['class'] += " align-" + node['align']
-        self.body.append(self.starttag(node, 'div', **atts))
+        atts = {}
+        styles = {}
+
+        if 'figwidth' in node:
+            styles['width'] = node['figwidth']
+
+        halign = ''
+        if 'align' in node:
+            for alignval in [x.strip() for x in node['align'].split(',')]:
+                if alignval in ('left', 'right', 'center'):
+                    halign = alignval
+
+        styles['vertical-align'] = 'bottom'
+
+        if isinstance(node.parent, nodes.reference):
+            # Inline context or surrounded by <a>...</a>.
+            suffix = ''
+            self.context.append('</figure>')
+        else:
+            suffix = '\n'
+            if halign in ('left', 'right'):
+                self.body.append(
+                    '<div class="align-%s" style="height:auto">\n' % halign)
+            elif halign == 'center':
+                self.body.append(
+                    '<div style="height:auto;margin:16px auto;display:table">' +
+                    '\n')
+            else:
+                self.body.append('<div style="height:auto">\n')
+            self.context.append('</figure></div>\n')
+
+        style = ''
+        for style_name, style_value in styles.items():
+            style += '{}:{};'.format(style_name, style_value)
+        if style:
+            atts['style'] = style
+        self.body.append(self.emptytag(node, 'figure', suffix, **atts))
 
     def depart_figure(self, node):
-        self.body.append('</div>\n')
+        self.body.append(self.context.pop())
 
     def visit_footer(self, node):
         self.context.append(len(self.body))
@@ -1019,26 +1052,31 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.header.extend(header)
         del self.body[start:]
 
+    def get_value_with_unit(self, value):
+        match = re.match(r'([0-9.]+)(\S*)$', value)
+        assert match
+        unit =  match.group(2)
+        if not unit:
+            # Interpret unitless values as pixels.
+            unit = 'px'
+        return match.group(1), unit
+
     def visit_image(self, node):
         atts = {}
         uri = node['uri']
-        # place SVG and SWF images in an <object> element
-        types = {'.svg': 'image/svg+xml',
-                 '.swf': 'application/x-shockwave-flash'}
         ext = os.path.splitext(uri)[1].lower()
-        if ext in ('.svg', '.swf'):
-            atts['data'] = uri
-            atts['type'] = types[ext]
-        else:
-            atts['src'] = uri
-            atts['alt'] = node.get('alt', uri)
-        # image size
-        if 'width' in node:
-            atts['width'] = node['width']
-        if 'height' in node:
-            atts['height'] = node['height']
+        styles = {}
+        units = {}
+
+        for att_name in ('width', 'height'):
+            if att_name in node:
+                value, unit = self.get_value_with_unit(node[att_name])
+                if unit == 'px':
+                    atts[att_name] = value
+                units[att_name] = (value, unit)
+
         if 'scale' in node:
-            if (PIL and not ('width' in node and 'height' in node)
+            if (PIL and not ('width' in atts and 'height' in atts)
                 and self.settings.file_insertion_enabled):
                 imagepath = url2pathname(uri)
                 try:
@@ -1049,43 +1087,99 @@ class HTMLTranslator(nodes.NodeVisitor):
                 else:
                     self.settings.record_dependencies.add(
                         imagepath.replace('\\', '/'))
-                    if 'width' not in atts:
-                        atts['width'] = str(img.size[0])
-                    if 'height' not in atts:
-                        atts['height'] = str(img.size[1])
+                    atts['width'] = str(img.size[0])
+                    atts['height'] = str(img.size[1])
                     del img
-            for att_name in 'width', 'height':
-                if att_name in atts:
-                    match = re.match(r'([0-9.]+)(\S*)$', atts[att_name])
-                    assert match
-                    atts[att_name] = '%s%s' % (
-                        float(match.group(1)) * (float(node['scale']) / 100),
-                        match.group(2))
-        style = []
-        for att_name in 'width', 'height':
-            if att_name in atts:
-                if re.match(r'^[0-9.]+$', atts[att_name]):
-                    # Interpret unitless values as pixels.
-                    atts[att_name] += 'px'
-                style.append('%s: %s;' % (att_name, atts[att_name]))
-                del atts[att_name]
-        if style:
-            atts['style'] = ' '.join(style)
-        if (isinstance(node.parent, nodes.TextElement) or
-            (isinstance(node.parent, nodes.reference) and
-             not isinstance(node.parent.parent, nodes.TextElement))):
+
+            scale = float(node['scale'])
+
+            if 'width' in units:
+                styles['width'] = '{:d}{}'.format(
+                    int(float(units['width'][0]) * scale // 100),
+                    units['width'][1])
+            if 'height' in units:
+                styles['height'] = '{:d}{}'.format(
+                    int(float(units['height'][0]) * scale // 100),
+                    units['height'][1])
+
+            if not ('width' in styles or not 'height' in styles):
+                if 'width' in atts:
+                    styles['width'] = '{:d}px'.format(
+                        int(float(atts['width']) * scale // 100))
+                if 'height' in atts:
+                    styles['height'] = '{:d}px'.format(
+                        int(float(atts['height']) * scale // 100))
+
+            if 'width' in styles and not 'height' in styles:
+                styles['height'] = 'auto'
+            elif not 'width' in styles and 'height' in styles:
+                styles['width'] = 'auto'
+            elif not 'width' in styles and not 'height' in styles:
+                styles['max-width'] = '{:d}%'.format(int(scale))
+                styles['height'] = 'auto'
+        else:
+            if 'width' in units:
+                styles['width'] = '{:d}{}'.format(int(units['width'][0]),
+                                                  units['width'][1])
+            if 'height' in units:
+                styles['height'] = '{:d}{}'.format(int(units['height'][0]),
+                                                   units['height'][1])
+            if 'width' in styles and not 'height' in styles:
+                styles['height'] = 'auto'
+            elif not 'width' in styles and 'height' in styles:
+                styles['width'] = 'auto'
+            elif not 'width' in styles and not 'height' in styles:
+                styles['max-width'] = '100%'
+                styles['height'] = 'auto'
+
+        valign = ''
+        halign = ''
+        if 'align' in node:
+            for alignval in [x.strip() for x in node['align'].split(',')]:
+                if alignval in ('left', 'right', 'center'):
+                    halign = alignval
+                if alignval in ('top', 'bottom', 'middle'):
+                    valign = alignval
+
+        if valign:
+            styles['vertical-align'] = valign
+        else:
+            styles['vertical-align'] = 'bottom'
+
+        if (isinstance(node.parent, nodes.reference) or
+            isinstance(node.parent, nodes.figure)):
             # Inline context or surrounded by <a>...</a>.
             suffix = ''
+            self.context.append('')
         else:
             suffix = '\n'
-        if 'align' in node:
-            atts['class'] = 'align-%s' % node['align']
-        self.context.append('')
-        if ext in ('.svg', '.swf'): # place in an object element,
-            # do NOT use an empty tag: incorrect rendering in browsers
-            self.body.append(self.starttag(node, 'object', suffix, **atts) +
-                             node.get('alt', uri) + '</object>' + suffix)
+            if halign in ('left', 'right'):
+                self.body.append(
+                    '<div class="align-%s" style="height:auto">\n' % halign)
+            elif halign == 'center':
+                self.body.append(
+                    '<div style="height:auto;margin:16px auto;display:table">' +
+                    '\n')
+            else:
+                self.body.append('<div style="height:auto">\n')
+            self.context.append('</div>\n')
+
+        style = ''
+        for style_name, style_value in styles.items():
+            style += '{}:{};'.format(style_name, style_value)
+        atts['style'] = style
+
+        # place SWF images in an <object> element
+        if ext == 'swf':
+            atts['data'] = uri
+            atts['type'] = 'application/x-shockwave-flash'
+            self.body.append(self.starttag(node, 'object', **atts) +
+                             '<param name="movie" value="{}">'.format(uri) +
+                             '<embed src="%s">'.format(uri) +
+                             '</embed></object>\n')
         else:
+            atts['src'] = uri
+            atts['alt'] = node.get('alt', uri)
             self.body.append(self.emptytag(node, 'img', suffix, **atts))
 
     def depart_image(self, node):
@@ -1421,13 +1515,38 @@ class HTMLTranslator(nodes.NodeVisitor):
                    'References must have "refuri" or "refid" attribute.'
             atts['href'] = '#' + node['refid']
             atts['class'] += ' internal'
-        if not isinstance(node.parent, nodes.TextElement):
-            assert len(node) == 1 and isinstance(node[0], nodes.image)
+        if (len(node) == 1 and (isinstance(node[0], nodes.image) and
+                                not isinstance(node.parent, nodes.figure))):
+            node0 = node[0]
+            halign = ''
+            if 'align' in node0:
+                for alignval in [x.strip() for x in node0['align'].split(',')]:
+                    if alignval in ('left', 'right', 'center'):
+                        halign = alignval
+            if halign == 'center':
+                self.body.append(
+                    '<div style="height:auto;margin:16px auto;display:table">' +
+                    '\n')
+                self.context.append('</a></div>')
+            elif halign in ('left', 'right'):
+                self.body.append(
+                    '<div class="align-%s" style="height:auto">\n' % halign)
+                self.context.append('</a></div>')
+            elif not isinstance(node.parent, nodes.TextElement):
+                self.body.append(
+                    '<div style="height:auto">\n')
+                self.context.append('</a></div>')
+            else:
+                self.context.append('</a>')
+
             atts['class'] += ' image-reference'
+            atts['style'] = 'display:inline-block'
+        else:
+            self.context.append('</a>')
         self.body.append(self.starttag(node, 'a', '', **atts))
 
     def depart_reference(self, node):
-        self.body.append('</a>')
+        self.body.append(self.context.pop())
         if not isinstance(node.parent, nodes.TextElement):
             self.body.append('\n')
         self.in_mailto = False
