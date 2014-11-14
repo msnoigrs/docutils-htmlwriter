@@ -336,6 +336,7 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.author_in_authors = False
         self.math_header = []
         self.protect_literal_text = False
+        self.line_block_nest = 0
 
     def astext(self):
         return ''.join(self.head_prefix + self.head
@@ -478,7 +479,7 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_Text(self, node):
         text = node.astext()
         encoded = self.encode(text)
-        if self.protect_literal_text:
+        if self.protect_literal_text or self.line_block_nest:
             # moved here from base class's visit_literal to support
             # more formatting in literal nodes
             for token in self.words_and_spaces.findall(encoded):
@@ -1207,17 +1208,17 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.body.append('</div>\n')
 
     def visit_line(self, node):
-        self.body.append(self.starttag(node, 'div', suffix='', CLASS='line'))
-        if not len(node):
-            self.body.append('<br>')
+        pass
 
     def depart_line(self, node):
-        self.body.append('</div>\n')
+        self.body.append('<br>\n')
 
     def visit_line_block(self, node):
         self.body.append(self.starttag(node, 'div', CLASS='line-block'))
+        self.line_block_nest += 1
 
     def depart_line_block(self, node):
+        self.line_block_nest -= 1
         self.body.append('</div>\n')
 
     def visit_list_item(self, node):
