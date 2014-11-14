@@ -21,7 +21,10 @@ import os
 import os.path
 import time
 import re
-import urllib
+try:
+    from urllib.request import url2pathname
+except ImportError:
+    from urllib import url2pathname
 import codecs
 try: # check for the Python Imaging Library
     import PIL.Image
@@ -1038,7 +1041,7 @@ class HTMLTranslator(nodes.NodeVisitor):
         if 'scale' in node:
             if (PIL and not ('width' in node and 'height' in node)
                 and self.settings.file_insertion_enabled):
-                imagepath = urllib.url2pathname(uri)
+                imagepath = url2pathname(uri)
                 try:
                     img = PIL.Image.open(
                             imagepath.encode(sys.getfilesystemencoding()))
