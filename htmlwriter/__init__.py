@@ -1680,7 +1680,7 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.compact_p = True
         classes = ' '.join(['docutils', self.settings.table_style]).strip()
         self.body.append(
-            self.starttag(node, 'table', CLASS=classes, border="1"))
+            self.starttag(node, 'table', CLASS=classes))
 
     def depart_table(self, node):
         self.compact_p = self.context.pop()
