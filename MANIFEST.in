@@ -1,0 +1,5 @@
+graft htmlwriter
+include *.txt
+include *.css
+include *.rst
+include *.py
