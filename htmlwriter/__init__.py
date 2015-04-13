@@ -1574,11 +1574,11 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_section(self, node):
         self.section_level += 1
         self.body.append(
-            self.starttag(node, 'div', CLASS='section'))
+            self.starttag(node, 'section', ''))
 
     def depart_section(self, node):
         self.section_level -= 1
-        self.body.append('</div>\n')
+        self.body.append('</section>\n')
 
     def visit_sidebar(self, node):
         self.body.append(
