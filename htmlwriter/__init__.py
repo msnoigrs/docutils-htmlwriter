@@ -1574,7 +1574,7 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_section(self, node):
         self.section_level += 1
         self.body.append(
-            self.starttag(node, 'section', ''))
+            self.starttag(node, 'div', CLASS='section'))
 
     def depart_section(self, node):
         self.section_level -= 1
