@@ -53,14 +53,11 @@ class Writer(writers.Writer):
     """Formats this writer supports."""
 
     default_stylesheet = 'htmlwriter.css'
-    default_stylesheet_dirs = ['.', utils.relative_path(
-        os.path.join(os.getcwd(), 'dummy'), os.path.dirname(__file__))]
+    default_stylesheet_dirs = ['.', os.path.abspath(os.path.dirname(__file__))]
 
     default_template = 'template.txt'
-
-    default_template_path = utils.relative_path(
-        os.path.join(os.getcwd(), 'dummy'),
-        os.path.join(os.path.dirname(__file__), default_template))
+    default_template_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), default_template)
 
     settings_spec = (
         'HTML-Specific Options',
