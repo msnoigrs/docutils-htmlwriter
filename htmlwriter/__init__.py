@@ -910,7 +910,7 @@ class HTMLTranslator(nodes.NodeVisitor):
              and len(node.astext()) > self.settings.field_name_limit):
             atts['colspan'] = 2
             self.context.append('</tr>\n'
-                                + self.starttag(node.parent, 'tr', '', 
+                                + self.starttag(node.parent, 'tr', '',
                                                 CLASS='field')
                                 + '<td>&nbsp;</td>')
         else:
@@ -1174,14 +1174,20 @@ class HTMLTranslator(nodes.NodeVisitor):
             self.body.append(self.starttag(node, 'object', **atts) +
                              '<param name="movie" value="{}">'.format(uri) +
                              '<embed src="%s">'.format(uri) +
-                             '</embed></object>\n')
+                             '</embed></object>' + suffix)
+        elif ext == 'svg':
+            atts['data'] = uri
+            atts['type'] = 'image/svg+xml'
+            self.body.append(self.starttag(node, 'object', **atts) +
+                             '</object>' + suffix)
         else:
             atts['src'] = uri
             atts['alt'] = node.get('alt', uri)
             self.body.append(self.emptytag(node, 'img', suffix, **atts))
 
     def depart_image(self, node):
-        self.body.append(self.context.pop())
+        #self.body.append(self.context.pop())
+        pass
 
     def visit_inline(self, node):
         self.body.append(self.starttag(node, 'span', ''))
