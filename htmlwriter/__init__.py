@@ -1678,7 +1678,7 @@ class HTMLTranslator(nodes.NodeVisitor):
         else:
             line = ''
         self.body.append('System Message: %s/%s '
-                         '(<tt class="docutils">%s</tt>%s)%s</p>\n'
+                         '(<span class="docutils literal">%s</span>%s)%s</p>\n'
                          % (node['type'], node['level'],
                             self.encode(node['source']), line, backref_text))
 
