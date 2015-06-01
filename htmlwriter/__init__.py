@@ -313,7 +313,8 @@ class HTMLTranslator(nodes.NodeVisitor):
         # A heterogenous stack used in conjunction with the tree traversal.
         # Make sure that the pops correspond to the pushes:
         self.context = []
-        self.topic_classes = []
+
+        self.topic_classes = [] # TODO: replace with self_in_contents
         self.colspecs = []
         self.compact_p = True
         self.compact_simple = False
@@ -1001,11 +1002,10 @@ class HTMLTranslator(nodes.NodeVisitor):
                 self.context.append('<a class="fn-backref" href="#%s">'
                                     % backrefs[0])
             else:
-                i = 1
-                for backref in backrefs:
+                # Python 2.4 fails with enumerate(backrefs, 1)
+                for (i, backref) in enumerate(backrefs):
                     backlinks.append('<a class="fn-backref" href="#%s">%s</a>'
-                                     % (backref, i))
-                    i += 1
+                                     % (backref, i+1))
                 self.context.append('<em>(%s)</em> ' % ', '.join(backlinks))
                 self.context += ['', '']
         else:
@@ -1804,10 +1804,13 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_topic(self, node):
         self.body.append(self.starttag(node, 'div', CLASS='topic'))
         self.topic_classes = node['classes']
+        # TODO: replace with ::
+        #   self.in_contents = 'contents' in node['classes']
 
     def depart_topic(self, node):
         self.body.append('</div>\n')
         self.topic_classes = []
+        # TODO self.in_contents = False
 
     def visit_transition(self, node):
         self.body.append(self.emptytag(node, 'hr', CLASS='docutils'))
@@ -1845,10 +1848,8 @@ class SimpleListChecker(nodes.GenericNodeVisitor):
         pass
 
     def visit_list_item(self, node):
-        children = []
-        for child in node.children:
-            if not isinstance(child, nodes.Invisible):
-                children.append(child)
+        children = [child for child in node.children
+                    if not isinstance(child, nodes.Invisible)]
         if (children and isinstance(children[0], nodes.paragraph)
             and (isinstance(children[-1], nodes.bullet_list)
                  or isinstance(children[-1], nodes.enumerated_list))):
