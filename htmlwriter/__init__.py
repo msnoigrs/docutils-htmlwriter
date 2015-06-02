@@ -255,7 +255,6 @@ class HTMLTranslator(nodes.NodeVisitor):
 
     head_prefix_template = '<html lang="%(lang)s">\n'
     content_type = '<meta charset="%s">\n'
-    content_type_mathml = content_type
 
     generator = ('<meta name="generator" content="Docutils %s: '
                  'http://docutils.sourceforge.net/">\n')
@@ -1306,7 +1305,6 @@ class HTMLTranslator(nodes.NodeVisitor):
             math_code = math2html.math2html(math_code)
         elif self.math_output == 'mathml':
             self.doctype = self.doctype_mathml
-            self.content_type = self.content_type_mathml
             try:
                 mathml_tree = parse_latex_math(math_code, inline=not(math_env))
                 math_code = ''.join(mathml_tree.xml())
