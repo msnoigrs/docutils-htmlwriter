@@ -529,7 +529,7 @@ class HTMLTranslator(nodes.NodeVisitor):
     def depart_admonition(self, node=None):
         self.body.append('</div>\n')
 
-    attribution_formats = {'dash': ('&mdash;', ''),
+    attribution_formats = {'dash': (u'\u2014', ''),
                            'parentheses': ('(', ')'),
                            'parens': ('(', ')'),
                            'none': ('', '')}
