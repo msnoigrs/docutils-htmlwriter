@@ -30,7 +30,7 @@ try:
     from urllib.request import url2pathname
 except ImportError:
     from urllib import url2pathname
-import codecs
+import io
 try: # check for the Python Imaging Library
     import PIL.Image
 except ImportError:
@@ -41,7 +41,8 @@ except ImportError:
     except ImportError:
         PIL = None
 import docutils
-from docutils import frontend, nodes, utils, writers, languages, io
+import docutils.io
+from docutils import frontend, nodes, utils, writers, languages
 from docutils.utils.error_reporting import SafeString
 from docutils.transforms import writer_aux
 from docutils.utils.math import unichar2tex, pick_math_environment, math2html
@@ -186,7 +187,8 @@ class Writer(writers.Writer):
         self.output = self.apply_template()
 
     def apply_template(self):
-        with codecs.open(self.document.settings.template, 'r', 'utf-8') as f:
+        with io.open(self.document.settings.template, 'r',
+                     encoding='utf-8') as f:
             template = f.read()
         subs = self.interpolation_dict()
         return template % subs
@@ -383,8 +385,8 @@ class HTMLTranslator(nodes.NodeVisitor):
         """Return code to reference or embed stylesheet file `path`"""
         if self.settings.embed_stylesheet:
             try:
-                content = io.FileInput(source_path=path,
-                                       encoding='utf-8').read()
+                content = docutils.io.FileInput(source_path=path,
+                                                encoding='utf-8').read()
                 self.settings.record_dependencies.add(path)
             except IOError as err:
                 msg = u"Cannot embed stylesheet '%s': %s." % (
