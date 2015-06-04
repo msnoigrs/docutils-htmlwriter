@@ -956,6 +956,7 @@ class HTMLTranslator(nodes.NodeVisitor):
     def depart_figure(self, node):
         self.body.append(self.context.pop())
 
+    # use HTML 5 <footer> element?
     def visit_footer(self, node):
         self.context.append(len(self.body))
 
@@ -1335,7 +1336,6 @@ class HTMLTranslator(nodes.NodeVisitor):
         pass # never reached
 
     def visit_math_block(self, node):
-        # print node.astext().encode('utf8')
         math_env = pick_math_environment(node.astext())
         self.visit_math(node, math_env=math_env)
 
