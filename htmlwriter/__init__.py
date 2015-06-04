@@ -1002,7 +1002,13 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.body.append(self.context.pop() + '</a>')
 
     def visit_generated(self, node):
-        pass
+        if 'sectnum' in node['classes']:
+            # get section number (strip trailing no-break-spaces)
+            sectnum = node.astext().rstrip(u' ')
+            self.body.append('<span class="sectnum">%s</span> '
+                                    % self.encode(sectnum))
+            # Content already processed:
+            raise nodes.SkipNode
 
     def depart_generated(self, node):
         pass
