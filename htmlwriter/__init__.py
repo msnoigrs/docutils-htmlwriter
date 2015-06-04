@@ -636,8 +636,11 @@ class HTMLTranslator(nodes.NodeVisitor):
     def depart_citation_reference(self, node):
         self.body.append(']</a>')
 
+    # classifier
+    # ----------
+    # don't insert classifier-delimiter here (done by CSS)
+
     def visit_classifier(self, node):
-        self.body.append(' <span class="classifier-delimiter">:</span> ')
         self.body.append(self.starttag(node, 'span', '', CLASS='classifier'))
 
     def depart_classifier(self, node):
