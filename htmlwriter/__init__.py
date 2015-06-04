@@ -1252,8 +1252,12 @@ class HTMLTranslator(nodes.NodeVisitor):
 
     def visit_literal_block(self, node):
         self.body.append(self.starttag(node, 'pre', CLASS='literal-block'))
+        if 'code' in node.get('classes', []):
+            self.body.append('<code>')
 
     def depart_literal_block(self, node):
+        if 'code' in node.get('classes', []):
+            self.body.append('</code>')
         self.body.append('\n</pre>\n')
 
     def visit_math(self, node, math_env=''):
