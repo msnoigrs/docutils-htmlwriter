@@ -1708,10 +1708,12 @@ class HTMLTranslator(nodes.NodeVisitor):
     def depart_target(self, node):
         self.body.append(self.context.pop())
 
+    # no hard-coded vertical alignment in table body::
+
     def visit_tbody(self, node):
         self.write_colspecs()
         self.body.append(self.context.pop()) # '</colgroup>\n' or ''
-        self.body.append(self.starttag(node, 'tbody', style="vertical-align:top"))
+        self.body.append(self.starttag(node, 'tbody'))
 
     def depart_tbody(self, node):
         self.body.append('</tbody>\n')
@@ -1741,7 +1743,7 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.body.append(self.context.pop()) # '</colgroup>\n'
         # There may or may not be a <thead>; this is for <tbody> to use:
         self.context.append('')
-        self.body.append(self.starttag(node, 'thead', style="vertical-align:bottom"))
+        self.body.append(self.starttag(node, 'thead'))
 
     def depart_thead(self, node):
         self.body.append('</thead>\n')
