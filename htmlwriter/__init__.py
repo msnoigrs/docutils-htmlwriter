@@ -470,10 +470,6 @@ class HTMLTranslator(nodes.NodeVisitor):
             return
         child['classes'].append(class_)
 
-    def set_first_last(self, node):
-        self.set_class_on_child(node, 'first', 0)
-        self.set_class_on_child(node, 'last', -1)
-
     def visit_Text(self, node):
         text = node.astext()
         encoded = self.encode(text)
@@ -523,7 +519,6 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_admonition(self, node):
         node['classes'].insert(0, 'admonition')
         self.body.append(self.starttag(node, 'div'))
-        self.set_first_last(node)
 
     def depart_admonition(self, node=None):
         self.body.append('</div>\n')
@@ -711,7 +706,6 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_definition(self, node):
         self.body.append('</dt>\n')
         self.body.append(self.starttag(node, 'dd', ''))
-        self.set_first_last(node)
 
     def depart_definition(self, node):
         self.body.append('</dd>\n')
@@ -833,9 +827,9 @@ class HTMLTranslator(nodes.NodeVisitor):
             node.parent.column += node['morecols']
         self.body.append(self.starttag(node, tagname, '', **atts))
         self.context.append('</%s>\n' % tagname.lower())
-        if len(node) == 0:              # empty cell
-            self.body.append('&nbsp;')
-        self.set_first_last(node)
+        # TODO: why did the html4css1 writer insert an NBSP into empty cells?
+        # if len(node) == 0:              # empty cell
+        #     self.body.append('&nbsp;')
 
     def depart_entry(self, node):
         self.body.append(self.context.pop())
@@ -1236,8 +1230,6 @@ class HTMLTranslator(nodes.NodeVisitor):
 
     def visit_list_item(self, node):
         self.body.append(self.starttag(node, 'li', ''))
-        if len(node):
-            node[0]['classes'].append('first')
 
     def depart_list_item(self, node):
         self.body.append('</li>\n')
@@ -1569,7 +1561,6 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_sidebar(self, node):
         self.body.append(
             self.starttag(node, 'div', CLASS='sidebar'))
-        self.set_first_last(node)
         self.in_sidebar = True
 
     def depart_sidebar(self, node):
