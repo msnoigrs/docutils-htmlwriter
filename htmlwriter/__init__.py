@@ -577,13 +577,39 @@ class HTMLTranslator(nodes.NodeVisitor):
         else:
             return 1
 
+    # Compact lists
+    # ------------
+    # Include definition lists and field lists (in addition to ordered
+    # and unordered lists) in the test if a list is "simple"  (cf. the
+    # html4css1.HTMLTranslator docstring and the SimpleListChecker class at
+    # the end of this file).
+
     def is_compactable(self, node):
-        return ('compact' in node['classes']
-                or (self.settings.compact_lists
-                    and 'open' not in node['classes']
-                    and (self.compact_simple
-                         or self.topic_classes == ['contents']
-                         or self.check_simple_list(node))))
+        # explicite class arguments have precedence
+        if 'compact' in node['classes']:
+            return True
+        if 'open' in node['classes']:
+            return False
+        # check config setting:
+        if (isinstance(node, nodes.field_list) or
+            isinstance(node, nodes.definition_list)
+           ) and not self.settings.compact_field_lists:
+            return False
+        if (isinstance(node, nodes.enumerated_list) or
+            isinstance(node, nodes.bullet_list)
+           ) and not self.settings.compact_lists:
+            return False
+        # more special cases:
+        if (self.topic_classes == ['contents']): # TODO: self.in_contents
+            return True
+        # check the list items:
+        visitor = SimpleListChecker(self.document)
+        try:
+            node.walk(visitor)
+        except nodes.NodeFound:
+            return False
+        else:
+            return True
 
     def visit_bullet_list(self, node):
         atts = {}
@@ -720,7 +746,10 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.body.append('</dd>\n')
 
     def visit_definition_list(self, node):
-        self.body.append(self.starttag(node, 'dl', CLASS='docutils'))
+        classes = node.setdefault('classes', [])
+        if self.is_compactable(node):
+            classes.append('simple')
+        self.body.append(self.starttag(node, 'dl'))
 
     def depart_definition_list(self, node):
         self.body.append('</dl>\n')
@@ -738,44 +767,35 @@ class HTMLTranslator(nodes.NodeVisitor):
         pass
 
     def visit_description(self, node):
-        self.body.append(self.starttag(node, 'td', ''))
-        self.set_first_last(node)
+        self.body.append(self.starttag(node, 'dd', ''))
 
     def depart_description(self, node):
-        self.body.append('</td>')
+        self.body.append('</dd>\n')
+
+    # docinfo
+    # -------
+    # use definition list instead of table
 
     def visit_docinfo(self, node):
-        self.context.append(len(self.body))
-        self.body.append(self.starttag(node, 'table',
-                                       CLASS='docinfo'))
-        self.body.append('<col class="docinfo-name">\n'
-                         '<col class="docinfo-content">\n'
-                         '<tbody style="vertical-align:top">\n')
-        self.in_docinfo = True
+        classes = 'docinfo'
+        if (self.is_compactable(node)):
+            classes += ' simple'
+        self.body.append(self.starttag(node, 'dl', CLASS=classes))
 
     def depart_docinfo(self, node):
-        self.body.append('</tbody>\n</table>\n')
-        self.in_docinfo = False
-        start = self.context.pop()
-        self.docinfo = self.body[start:]
-        self.body = []
+        self.body.append('</dl>\n')
 
     def visit_docinfo_item(self, node, name, meta=True):
         if meta:
             meta_tag = '<meta name="%s" content="%s">\n' \
                        % (name, self.attval(node.astext()))
             self.add_meta(meta_tag)
-        self.body.append(self.starttag(node, 'tr', ''))
-        self.body.append('<th class="docinfo-name">%s:</th>\n<td>'
-                         % self.language.labels[name])
-        if len(node):
-            if isinstance(node[0], nodes.Element):
-                node[0]['classes'].append('first')
-            if isinstance(node[-1], nodes.Element):
-                node[-1]['classes'].append('last')
+        self.body.append('<dt class="%s">%s</dt>\n'
+                         % (name, self.language.labels[name]))
+        self.body.append(self.starttag(node, 'dd', '', CLASS=name))
 
     def depart_docinfo_item(self):
-        self.body.append('</td></tr>\n')
+        self.body.append('</dd>\n')
 
     def visit_doctest_block(self, node):
         self.body.append(self.starttag(node, 'pre', suffix='',
@@ -850,91 +870,49 @@ class HTMLTranslator(nodes.NodeVisitor):
             atts['start'] = node['start']
         if 'enumtype' in node:
             atts['class'] = node['enumtype']
-        # @@@ To do: prefix, suffix. How? Change prefix/suffix to a
-        # single "format" attribute? Use CSS2?
-        old_compact_simple = self.compact_simple
-        self.context.append((self.compact_simple, self.compact_p))
-        self.compact_p = None
-        self.compact_simple = self.is_compactable(node)
-        if self.compact_simple and not old_compact_simple:
+        if self.is_compactable(node):
             atts['class'] = (atts.get('class', '') + ' simple').strip()
         self.body.append(self.starttag(node, 'ol', **atts))
 
     def depart_enumerated_list(self, node):
-        self.compact_simple, self.compact_p = self.context.pop()
         self.body.append('</ol>\n')
 
     def visit_field(self, node):
-        self.body.append(self.starttag(node, 'tr', '', CLASS='field'))
+        pass
 
     def depart_field(self, node):
-        self.body.append('</tr>\n')
+        pass
 
     def visit_field_body(self, node):
-        self.body.append(self.starttag(node, 'td', '', CLASS='field-body'))
-        self.set_class_on_child(node, 'first', 0)
-        field = node.parent
-        if (self.compact_field_list or
-            isinstance(field.parent, nodes.docinfo) or
-            field.parent.index(field) == len(field.parent) - 1):
-            # If we are in a compact list, the docinfo, or if this is
-            # the last field of the field list, do not add vertical
-            # space after last element.
-            self.set_class_on_child(node, 'last', -1)
+        self.body.append(self.starttag(node, 'dd', '',
+                                       CLASS=''.join(node.parent['classes'])))
 
     def depart_field_body(self, node):
-        self.body.append('</td>\n')
+        self.body.append('</dd>\n')
+
+    # field-list
+    # ----------
+    # set as definition list, styled with CSS
 
     def visit_field_list(self, node):
-        self.context.append((self.compact_field_list, self.compact_p))
-        self.compact_p = None
-        if 'compact' in node['classes']:
-            self.compact_field_list = True
-        elif (self.settings.compact_field_lists
-              and 'open' not in node['classes']):
-            self.compact_field_list = True
-        if self.compact_field_list:
-            for field in node:
-                field_body = field[-1]
-                assert isinstance(field_body, nodes.field_body)
-                children = [n for n in field_body
-                            if not isinstance(n, nodes.Invisible)]
-                if not (len(children) == 0 or
-                        len(children) == 1 and
-                        isinstance(children[0],
-                                   (nodes.paragraph, nodes.line_block))):
-                    self.compact_field_list = False
-                    break
-        self.body.append(self.starttag(node, 'table',
-                                       CLASS='docutils field-list'))
-        self.body.append('<col class="field-name">\n'
-                         '<col class="field-body">\n'
-                         '<tbody style="vertical-align:top">\n')
+        # Keep simple paragraphs in the field_body to enable CSS
+        # rule to start body on new line if the label is too long
+        classes = 'field-list'
+        if (self.is_compactable(node)):
+            classes += ' simple'
+        self.body.append(self.starttag(node, 'dl', CLASS=classes))
 
     def depart_field_list(self, node):
-        self.body.append('</tbody>\n</table>\n')
-        self.compact_field_list, self.compact_p = self.context.pop()
+        self.body.append('</dl>\n')
+
+    # as field is ignored, pass class arguments to field-name and field-body:
 
     def visit_field_name(self, node):
-        atts = {}
-        if self.in_docinfo:
-            atts['class'] = 'docinfo-name'
-        else:
-            atts['class'] = 'field-name'
-        if ( self.settings.field_name_limit
-             and len(node.astext()) > self.settings.field_name_limit):
-            atts['colspan'] = 2
-            self.context.append('</tr>\n'
-                                + self.starttag(node.parent, 'tr', '',
-                                                CLASS='field')
-                                + '<td>&nbsp;</td>')
-        else:
-            self.context.append('')
-        self.body.append(self.starttag(node, 'th', '', **atts))
+        self.body.append(self.starttag(node, 'dt', '',
+                                       CLASS=''.join(node.parent['classes'])))
 
     def depart_field_name(self, node):
-        self.body.append(':</th>')
-        self.body.append(self.context.pop())
+        self.body.append('</dt>\n')
 
     def visit_figure(self, node):
         atts = {}
@@ -1820,37 +1798,69 @@ class SimpleListChecker(nodes.GenericNodeVisitor):
 
     Here "simple" means a list item containing nothing other than a single
     paragraph, a simple list, or a paragraph followed by a simple list.
+
+    This version also checks for simple field lists and docinfo.
     """
 
     def default_visit(self, node):
         raise nodes.NodeFound
 
-    def visit_bullet_list(self, node):
-        pass
-
-    def visit_enumerated_list(self, node):
-        pass
-
     def visit_list_item(self, node):
         children = [child for child in node.children
                     if not isinstance(child, nodes.Invisible)]
         if (children and isinstance(children[0], nodes.paragraph)
-            and (isinstance(children[-1], nodes.bullet_list)
-                 or isinstance(children[-1], nodes.enumerated_list))):
+            and (isinstance(children[-1], nodes.bullet_list) or
+                 isinstance(children[-1], nodes.enumerated_list) or
+                 isinstance(children[-1], nodes.field_list))):
             children.pop()
         if len(children) <= 1:
             return
         else:
             raise nodes.NodeFound
 
-    def visit_paragraph(self, node):
+    def pass_node(self, node):
+        pass
+
+    def ignore_node(self, node):
+        # ignore nodes that are never complex (can contain only inline nodes)
         raise nodes.SkipNode
 
-    def invisible_visit(self, node):
-        """Invisible nodes should be ignored."""
-        raise nodes.SkipNode
+    # Paragraphs and text
+    visit_Text = ignore_node
+    visit_paragraph = ignore_node
 
-    visit_comment = invisible_visit
-    visit_substitution_definition = invisible_visit
-    visit_target = invisible_visit
-    visit_pending = invisible_visit
+    # Lists
+    visit_bullet_list = pass_node
+    visit_enumerated_list = pass_node
+    visit_docinfo = pass_node
+
+    # Docinfo nodes:
+    visit_author = ignore_node
+    visit_authors = visit_list_item
+    visit_address = visit_list_item
+    visit_contact = pass_node
+    visit_copyright = ignore_node
+    visit_date = ignore_node
+    visit_organization = ignore_node
+    visit_status = ignore_node
+    visit_version = visit_list_item
+
+    # Definition list:
+    visit_definition_list = pass_node
+    visit_definition_list_item = pass_node
+    visit_term = ignore_node
+    visit_classifier = pass_node
+    visit_definition = visit_list_item
+
+    # Field list:
+    visit_field_list = pass_node
+    visit_field = pass_node
+    # the field body corresponds to a list item
+    visit_field_body = visit_list_item
+    visit_field_name = ignore_node
+
+    # Invisible nodes should be ignored.
+    visit_comment = ignore_node
+    visit_substitution_definition = ignore_node
+    visit_target = ignore_node
+    visit_pending = ignore_node
