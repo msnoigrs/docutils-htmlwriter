@@ -539,9 +539,10 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.context.append(suffix)
         self.body.append(
             self.starttag(node, 'p', prefix, CLASS='attribution'))
+        self.body.append(self.starttag(node, 'cite', ''))
 
     def depart_attribution(self, node):
-        self.body.append(self.context.pop() + '</p>\n')
+        self.body.append('</cite>' + self.context.pop() + '</p>\n')
 
     def visit_author(self, node):
         if isinstance(node.parent, nodes.authors):
