@@ -1626,24 +1626,23 @@ class HTMLTranslator(nodes.NodeVisitor):
     def visit_substitution_reference(self, node):
         self.unimplemented_visit(node)
 
+    # h1–h6 elements must not be used to markup subheadings, subtitles,
+    # alternative titles and taglines unless intended to be the heading for a
+    # new section or subsection.
+    # -- http://www.w3.org/TR/html/sections.html#headings-and-sections
+
     def visit_subtitle(self, node):
         if isinstance(node.parent, nodes.sidebar):
-            self.body.append(self.starttag(node, 'p', '',
-                                           CLASS='sidebar-subtitle'))
-            self.context.append('</p>\n')
+            classes = 'sidebar-subtitle'
         elif isinstance(node.parent, nodes.document):
-            self.body.append(self.starttag(node, 'h2', '', CLASS='subtitle'))
-            self.context.append('</h2>\n')
+            classes = 'subtitle'
             self.in_document_title = len(self.body)
         elif isinstance(node.parent, nodes.section):
-            tag = 'h%s' % (self.section_level + self.initial_header_level - 1)
-            self.body.append(
-                self.starttag(node, tag, '', CLASS='section-subtitle') +
-                self.starttag({}, 'span', '', CLASS='section-subtitle'))
-            self.context.append('</span></%s>\n' % tag)
+            classes = 'section-subtitle'
+        self.body.append(self.starttag(node, 'p', '', CLASS=classes))
 
     def depart_subtitle(self, node):
-        self.body.append(self.context.pop())
+        self.body.append('</p>\n')
         if self.in_document_title:
             self.subtitle = self.body[self.in_document_title:-1]
             self.in_document_title = 0
