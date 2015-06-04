@@ -322,6 +322,7 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.compact_field_list = False
         self.in_docinfo = False
         self.in_sidebar = False
+        self.in_footnote_list = False
         self.title = []
         self.subtitle = []
         self.header = []
@@ -604,17 +605,22 @@ class HTMLTranslator(nodes.NodeVisitor):
     def depart_caption(self, node):
         self.body.append('</figcaption>\n')
 
+    # citations
+    # ---------
+    # Use definition list instead of table for bibliographic references.
+    # Join adjacent citation entries.
+
     def visit_citation(self, node):
-        self.body.append(self.starttag(node, 'table',
-                                       CLASS='docutils citation'))
-        self.body.append('<colgroup><col class="label"><col></colgroup>\n'
-                         '<tbody style="vertical-align:top">\n'
-                         '<tr>')
-        self.footnote_backrefs(node)
+        if not self.in_footnote_list:
+            self.body.append('<dl class="citation">\n')
+            self.in_footnote_list = True
 
     def depart_citation(self, node):
-        self.body.append('</td></tr>\n'
-                         '</tbody>\n</table>\n')
+        self.body.append('</dd>\n')
+        if not isinstance(node.next_node(descend=False, siblings=True),
+                          nodes.citation):
+            self.body.append('</dl>\n')
+            self.in_footnote_list = False
 
     def visit_citation_reference(self, node):
         href = '#'
@@ -981,44 +987,21 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.body_suffix[:0] = footer
         del self.body[start:]
 
-    def visit_footnote(self, node):
-        self.body.append(self.starttag(node, 'table',
-                                       CLASS='docutils footnote'))
-        self.body.append('<colgroup><col class="label"><col></colgroup>\n'
-                         '<tbody style="vertical-align:top">\n'
-                         '<tr>')
-        self.footnote_backrefs(node)
+    # footnotes
+    # ---------
+    # use definition list instead of table for footnote text
 
-    def footnote_backrefs(self, node):
-        backlinks = []
-        backrefs = node['backrefs']
-        if self.settings.footnote_backlinks and backrefs:
-            if len(backrefs) == 1:
-                self.context.append('')
-                self.context.append('</a>')
-                self.context.append('<a class="fn-backref" href="#%s">'
-                                    % backrefs[0])
-            else:
-                # Python 2.4 fails with enumerate(backrefs, 1)
-                for (i, backref) in enumerate(backrefs):
-                    backlinks.append('<a class="fn-backref" href="#%s">%s</a>'
-                                     % (backref, i+1))
-                self.context.append('<em>(%s)</em> ' % ', '.join(backlinks))
-                self.context += ['', '']
-        else:
-            self.context.append('')
-            self.context += ['', '']
-        # If the node does not only consist of a label.
-        if len(node) > 1:
-            # If there are preceding backlinks, we do not set class
-            # 'first', because we need to retain the top-margin.
-            if not backlinks:
-                node[1]['classes'].append('first')
-            node[-1]['classes'].append('last')
+    def visit_footnote(self, node):
+        if not self.in_footnote_list:
+            self.body.append('<dl class="footnote">\n')
+            self.in_footnote_list = True
 
     def depart_footnote(self, node):
-        self.body.append('</td></tr>\n'
-                         '</tbody>\n</table>\n')
+        self.body.append('</dd>\n')
+        if not isinstance(node.next_node(descend=False, siblings=True),
+                          nodes.footnote):
+            self.body.append('</dl>\n')
+            self.in_footnote_list = False
 
     def visit_footnote_reference(self, node):
         href = '#' + node['refid']
@@ -1199,14 +1182,41 @@ class HTMLTranslator(nodes.NodeVisitor):
     def depart_inline(self, node):
         self.body.append('</span>')
 
+    # footnote and citation label
+    def label_delim(self, node, bracket, superscript):
+        """put brackets around label?"""
+        if isinstance(node.parent, nodes.footnote):
+            if self.settings.footnote_references == 'brackets':
+                return bracket
+            else:
+                return superscript
+        assert isinstance(node.parent, nodes.citation)
+        return bracket
+
     def visit_label(self, node):
-        # Context added in footnote_backrefs.
-        self.body.append(self.starttag(node, 'td', '%s[' % self.context.pop(),
-                                       CLASS='label'))
+        # pass parent node to get id into starttag:
+        self.body.append(self.starttag(node.parent, 'dt', '', CLASS='label'))
+        # footnote/citation backrefs:
+        if self.settings.footnote_backlinks:
+            backrefs = node.parent['backrefs']
+            if len(backrefs) == 1:
+                self.body.append('<a class="fn-backref" href="#%s">'
+                                 % backrefs[0])
+        self.body.append(self.label_delim(node, '[', ''))
 
     def depart_label(self, node):
-        # Context added in footnote_backrefs.
-        self.body.append(']%s</td><td>%s' % (self.context.pop(), self.context.pop()))
+        self.body.append(self.label_delim(node, ']', ''))
+        if self.settings.footnote_backlinks:
+            backrefs = node.parent['backrefs']
+            if len(backrefs) == 1:
+                self.body.append('</a>')
+            elif len(backrefs) > 1:
+                # Python 2.4 fails with enumerate(backrefs, 1)
+                backlinks = ['<a href="#%s">%s</a>' % (ref, i+1)
+                             for (i, ref) in enumerate(backrefs)]
+                self.body.append('<span class="fn-backref">(%s)</span>'
+                                 % ','.join(backlinks))
+        self.body.append('</dt>\n<dd>')
 
     def visit_legend(self, node):
         self.body.append(self.starttag(node, 'div', CLASS='legend'))
