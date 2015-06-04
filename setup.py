@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='docutils-htmlwriter',
-      version='0.2',
+      version='0.3',
       description='Another HTML Writer for Docutils',
       long_description=open('README.rst').read(),
       author='IGARASHI Masanao',
