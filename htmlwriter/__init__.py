@@ -1364,13 +1364,13 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.head.append(tag)
 
     def visit_option(self, node):
-        if self.context[-1]:
-            self.body.append(', ')
         self.body.append(self.starttag(node, 'span', '', CLASS='option'))
 
     def depart_option(self, node):
         self.body.append('</span>')
-        self.context[-1] += 1
+        if isinstance(node.next_node(descend=False, siblings=True),
+                      nodes.option):
+            self.body.append(', ')
 
     def visit_option_argument(self, node):
         self.body.append(node.get('delimiter', ' '))
@@ -1380,38 +1380,24 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.body.append('</var>')
 
     def visit_option_group(self, node):
-        atts = {}
-        if ( self.settings.option_limit
-             and len(node.astext()) > self.settings.option_limit):
-            atts['colspan'] = 2
-            self.context.append('</tr>\n<tr><td>&nbsp;</td>')
-        else:
-            self.context.append('')
-        self.body.append(
-            self.starttag(node, 'td', CLASS='option-group', **atts))
+        self.body.append(self.starttag(node, 'dt', ''))
         self.body.append('<kbd>')
-        self.context.append(0)          # count number of options
 
     def depart_option_group(self, node):
-        self.context.pop()
-        self.body.append('</kbd></td>\n')
-        self.body.append(self.context.pop())
+        self.body.append('</kbd></dt>\n')
 
     def visit_option_list(self, node):
         self.body.append(
-              self.starttag(node, 'table', CLASS='docutils option-list'))
-        self.body.append('<col class="option">\n'
-                         '<col class="description">\n'
-                         '<tbody style="vertical-align:top">\n')
+            self.starttag(node, 'dl', CLASS='option-list'))
 
     def depart_option_list(self, node):
-        self.body.append('</tbody>\n</table>\n')
+        self.body.append('</dl>\n')
 
     def visit_option_list_item(self, node):
-        self.body.append(self.starttag(node, 'tr', ''))
+        pass
 
     def depart_option_list_item(self, node):
-        self.body.append('</tr>\n')
+        pass
 
     def visit_option_string(self, node):
         pass
