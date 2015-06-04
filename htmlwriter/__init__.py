@@ -1674,15 +1674,17 @@ class HTMLTranslator(nodes.NodeVisitor):
     def depart_system_message(self, node):
         self.body.append('</div>\n')
 
+    # tables
+    # ------
+    # no hard-coded border setting in the table head::
+
     def visit_table(self, node):
-        self.context.append(self.compact_p)
-        self.compact_p = True
-        classes = ' '.join(['docutils', self.settings.table_style]).strip()
-        self.body.append(
-            self.starttag(node, 'table', CLASS=classes))
+        classes = [cls.strip(u' \t\n')
+                   for cls in self.settings.table_style.split(',')]
+        tag = self.starttag(node, 'table', CLASS=' '.join(classes))
+        self.body.append(tag)
 
     def depart_table(self, node):
-        self.compact_p = self.context.pop()
         self.body.append('</table>\n')
 
     def visit_target(self, node):
