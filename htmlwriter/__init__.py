@@ -1425,36 +1425,6 @@ class HTMLTranslator(nodes.NodeVisitor):
     def depart_organization(self, node):
         self.depart_docinfo_item()
 
-    def should_be_compact_paragraph(self, node):
-        """
-        Determine if the <p> tags around paragraph ``node`` can be omitted.
-        """
-        if (isinstance(node.parent, nodes.document) or
-            isinstance(node.parent, nodes.compound)):
-            # Never compact paragraphs in document or compound.
-            return False
-        for key, value in node.attlist():
-            if (node.is_not_default(key) and
-                not (key == 'classes' and value in
-                     ([], ['first'], ['last'], ['first', 'last']))):
-                # Attribute which needs to survive.
-                return False
-        first = isinstance(node.parent[0], nodes.label) # skip label
-        for child in node.parent.children[first:]:
-            # only first paragraph can be compact
-            if isinstance(child, nodes.Invisible):
-                continue
-            if child is node:
-                break
-            return False
-        parent_length = len([n for n in node.parent if not isinstance(
-            n, (nodes.Invisible, nodes.label))])
-        if ( self.compact_simple
-             or self.compact_field_list
-             or self.compact_p and parent_length == 1):
-            return True
-        return False
-
     def strip_spaces_between_uchars(self, para):
         # modify text inside Text node
         for node in para.traverse():
@@ -1483,17 +1453,31 @@ class HTMLTranslator(nodes.NodeVisitor):
                     new_textnode.parent = node.parent
                 prev_textnode = new_textnode if new_textnode else node
 
+    # Do not omit <p> tags
+    # --------------------
+    #
+    # The HTML4CSS1 writer does this to "produce
+    # visually compact lists (less vertical whitespace)". This writer
+    # relies on CSS rules for"visual compactness".
+    #
+    # * In XHTML 1.1, e.g. a <blockquote> element may not contain
+    #   character data, so you cannot drop the <p> tags.
+    # * Keeping simple paragraphs in the field_body enables a CSS
+    #   rule to start the field-body on a new line if the label is too long
+    # * it makes the code simpler.
+    #
+    # TODO: omit paragraph tags in simple table cells?
+
     def visit_paragraph(self, node):
         self.strip_spaces_between_uchars(node)
         self.strip_spaces_around_uchars_paragraph_children(node)
-        if self.should_be_compact_paragraph(node):
-            self.context.append('')
-        else:
-            self.body.append(self.starttag(node, 'p', ''))
-            self.context.append('</p>\n')
+        self.body.append(self.starttag(node, 'p', ''))
 
     def depart_paragraph(self, node):
-        self.body.append(self.context.pop())
+        self.body.append('</p>')
+        if not (isinstance(node.parent, (nodes.list_item, nodes.entry)) and
+                (len(node.parent) == 1)):
+            self.body.append('\n')
 
     def visit_problematic(self, node):
         if node.hasattr('refid'):
