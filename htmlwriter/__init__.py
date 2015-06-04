@@ -332,7 +332,6 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.html_body = []
         self.in_document_title = 0   # len(self.body) or 0
         self.in_mailto = False
-        self.author_in_authors = False
         self.math_header = []
         self.protect_literal_text = False
         self.line_block_nest = 0
@@ -544,22 +543,24 @@ class HTMLTranslator(nodes.NodeVisitor):
     def depart_attribution(self, node):
         self.body.append('</cite>' + self.context.pop() + '</p>\n')
 
+    # author, authors
+    # ---------------
+    # Use paragraphs instead of hard-coded linebreaks.
+
     def visit_author(self, node):
-        if isinstance(node.parent, nodes.authors):
-            if self.author_in_authors:
-                self.body.append('\n<br>')
-        else:
+        if not(isinstance(node.parent, nodes.authors)):
             self.visit_docinfo_item(node, 'author')
+        self.body.append('<p>')
 
     def depart_author(self, node):
+        self.body.append('</p>')
         if isinstance(node.parent, nodes.authors):
-            self.author_in_authors = True
+            self.body.append('\n')
         else:
             self.depart_docinfo_item()
 
     def visit_authors(self, node):
-        self.visit_docinfo_item(node, 'authors')
-        self.author_in_authors = False  # initialize
+        self.visit_docinfo_item(node, 'authors', meta=False)
 
     def depart_authors(self, node):
         self.depart_docinfo_item()
@@ -690,13 +691,13 @@ class HTMLTranslator(nodes.NodeVisitor):
         self.depart_docinfo_item()
 
     def visit_copyright(self, node):
-        self.visit_docinfo_item(node, 'copyright')
+        self.visit_docinfo_item(node, 'copyright', meta=False)
 
     def depart_copyright(self, node):
         self.depart_docinfo_item()
 
     def visit_date(self, node):
-        self.visit_docinfo_item(node, 'date')
+        self.visit_docinfo_item(node, 'date', meta=False)
 
     def depart_date(self, node):
         self.depart_docinfo_item()
@@ -1419,7 +1420,7 @@ class HTMLTranslator(nodes.NodeVisitor):
         pass
 
     def visit_organization(self, node):
-        self.visit_docinfo_item(node, 'organization')
+        self.visit_docinfo_item(node, 'organization', meta=False)
 
     def depart_organization(self, node):
         self.depart_docinfo_item()
