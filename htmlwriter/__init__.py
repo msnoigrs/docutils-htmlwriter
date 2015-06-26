@@ -1162,8 +1162,7 @@ class HTMLTranslator(nodes.NodeVisitor):
             self.body.append(self.emptytag(node, 'img', suffix, **atts))
 
     def depart_image(self, node):
-        #self.body.append(self.context.pop())
-        pass
+        self.body.append(self.context.pop())
 
     def visit_inline(self, node):
         self.body.append(self.starttag(node, 'span', ''))
