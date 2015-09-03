@@ -286,7 +286,8 @@ class HTMLTranslator(nodes.NodeVisitor):
     __RGX2 = re.compile(r'^[\s]*([^!-~])')
 
     def __init__(self, document):
-        super(HTMLTranslator, self).__init__(document)
+        #super(HTMLTranslator, self).__init__(document)
+        nodes.NodeVisitor.__init__(self, document)
         self.settings = settings = document.settings
         lcode = settings.language_code
         self.language = languages.get_language(lcode, document.reporter)
