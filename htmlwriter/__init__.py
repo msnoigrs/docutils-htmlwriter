@@ -978,7 +978,8 @@ class HTMLTranslator(nodes.NodeVisitor):
 
     def visit_footnote(self, node):
         if not self.in_footnote_list:
-            self.body.append('<dl class="footnote">\n')
+            classes = 'footnote ' + self.settings.footnote_references
+            self.body.append('<dl class="%s">\n'%classes)
             self.in_footnote_list = True
 
     def depart_footnote(self, node):
@@ -990,19 +991,12 @@ class HTMLTranslator(nodes.NodeVisitor):
 
     def visit_footnote_reference(self, node):
         href = '#' + node['refid']
-        format = self.settings.footnote_references
-        if format == 'brackets':
-            suffix = '['
-            self.context.append(']')
-        else:
-            assert format == 'superscript'
-            suffix = '<sup>'
-            self.context.append('</sup>')
-        self.body.append(self.starttag(node, 'a', suffix,
-                                       CLASS='footnote-reference', href=href))
+        classes = 'footnote-reference ' + self.settings.footnote_references
+        self.body.append(self.starttag(node, 'a', '', #suffix,
+                                       CLASS=classes, href=href))
 
     def depart_footnote_reference(self, node):
-        self.body.append(self.context.pop() + '</a>')
+        self.body.append('</a>')
 
     def visit_generated(self, node):
         if 'sectnum' in node['classes']:
@@ -1179,18 +1173,22 @@ class HTMLTranslator(nodes.NodeVisitor):
         return bracket
 
     def visit_label(self, node):
+        if (isinstance(node.parent, nodes.footnote)):
+            classes = self.settings.footnote_references
+        else:
+            classes = 'brackets'
         # pass parent node to get id into starttag:
         self.body.append(self.starttag(node.parent, 'dt', '', CLASS='label'))
+        self.body.append(self.starttag(node, 'span', '', CLASS=classes))
         # footnote/citation backrefs:
         if self.settings.footnote_backlinks:
             backrefs = node.parent['backrefs']
             if len(backrefs) == 1:
                 self.body.append('<a class="fn-backref" href="#%s">'
                                  % backrefs[0])
-        self.body.append(self.label_delim(node, '[', ''))
 
     def depart_label(self, node):
-        self.body.append(self.label_delim(node, ']', ''))
+        self.body.append('</span>')
         if self.settings.footnote_backlinks:
             backrefs = node.parent['backrefs']
             if len(backrefs) == 1:
