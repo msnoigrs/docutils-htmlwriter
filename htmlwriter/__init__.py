@@ -50,7 +50,7 @@ from docutils.utils.math.latex2mathml import parse_latex_math
 
 class Writer(writers.Writer):
 
-    supported = ('html',)
+    supported = ('html', 'html5')
     """Formats this writer supports."""
 
     default_stylesheet = ['htmlwriter.css']
