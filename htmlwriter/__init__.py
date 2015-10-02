@@ -346,7 +346,8 @@ class HTMLTranslator(nodes.NodeVisitor):
 
     def encode(self, text):
         """Encode special characters in `text` & return."""
-        # @@@ A codec to do these and all other HTML entities would be nice.
+        # Use only named entities known in HTML
+        # other characters are automatically encoded "by number" if required.
         text = unicode(text)
         return text.translate({
             ord('&'): u'&amp;',
