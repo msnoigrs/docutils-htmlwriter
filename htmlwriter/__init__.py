@@ -1153,11 +1153,6 @@ class HTMLTranslator(nodes.NodeVisitor):
                              '<param name="movie" value="{}">'.format(uri) +
                              '<embed src="%s">'.format(uri) +
                              '</embed></object>' + suffix)
-        elif ext == 'svg':
-            atts['data'] = uri
-            atts['type'] = 'image/svg+xml'
-            self.body.append(self.starttag(node, 'object', **atts) +
-                             '</object>' + suffix)
         else:
             atts['src'] = uri
             atts['alt'] = node.get('alt', uri)
